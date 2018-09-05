@@ -1,0 +1,396 @@
+interface List<T>{
+	T head()  (Raise)
+	List<T> rest() (Raise)
+	Boolean empty()
+	List<T> clone()
+	List<T> append(List<T> other)
+}
+ 
+interface IBox<X>{
+}
+
+interface Raise{
+	eff Bottom raise()
+}
+
+
+interface State<X>{
+	eff X get()
+	eff Unit put(X x)
+}
+
+interface String{
+	String concat(String x)
+}
+
+interface Boolean{
+	Boolean and(Boolean other)
+}
+
+interface Int{
+
+}
+
+interface There<U, T , C>{
+	U resume(T result, C thiz)
+}
+
+interface Maybe<T>{
+
+}
+
+interface ToStr<X>{
+	eff String toString(X x)
+}
+
+interface IntToStr extends ToStr<Int>{ }
+
+interface IntToHex extends ToStr<Int>{ }
+
+
+interface BoolToStr extends ToStr<Boolean>{ }
+
+interface Purity{
+	Unit pure()
+}
+
+interface Raising {
+	Unit methodThatRaises() (Raise<Int>)
+}
+
+class PurityClass() implements Purity{
+	Unit pure() = new Unit()
+}
+
+class NotThatPure() implements Purity{
+	Unit pure() (Raise) = new Unit()
+}
+
+
+class DoesNotRaise() implements Raising  {
+	Unit methodThatRaises() = new Unit()
+}
+
+class DoesRaise() implements Raising  {
+	Unit methodThatRaises() (Raise<Int>) = new Unit()
+}
+
+class ABoolToStr<X>() implements BoolToStr, Handler<X,X>{
+	eff String toString(Boolean x) = there.resume(new SerializedBoolean(), this)
+	X return(X x) = x
+}
+
+class AnIntToStr<X>() implements IntToStr, Handler<X,X>{
+	eff String toString(Int x) = there.resume(new SerializedInt(), this)
+	X return(X x) = x
+}
+
+class AnIntToHex<X>() implements IntToHex, Handler<X,X>{
+	eff String toString(Boolean x) = there.resume(new Hex(), this)
+	X return(X x) = x
+}
+
+class ConcatStr(String s, ConcatStr rest) implements String{
+	String concat(String x) = new ConcatStr(x, this)
+}
+
+class Hex() implements String{
+	String concat(String x) = new ConcatStr(this, x)
+}
+
+class SerializedInt() implements String{
+	String concat(String x) = new ConcatStr(this, x)
+}
+
+class SerializedBoolean() implements String{
+	String concat(String x) = new ConcatStr(this, x)
+}
+
+class Bottom(){
+}
+
+class FortyTwo() implements Int{
+
+}
+
+class Unit(){
+
+}
+
+class StateResult<X>(X x){
+
+}
+
+class DefaultState<T>(T s) implements State<T>, Handler<StateResult<T>, T>{
+	StateResult<T> return(T x) = new StateResult<T>(x)
+	eff T get() = there.resume(this.s, this)
+	eff Unit put(T s0) = there.resume(new Unit(), new DefaultState<T>(s0))
+}
+
+class ToMaybe<T>() implements Raise, Handler<Maybe<T>, T>{
+	Maybe<T> return(T t) = new Just<T>(t)
+	eff Bottom raise() = new Nothing<T>() // type is correct because it never resumes!!!
+} 
+ 
+class Cons <T> (T head, List < T > rest) implements List<T> { 
+  T head()  (Raise) = this.head
+  List<T> rest() (Raise) = this.rest
+  Boolean empty() () = new False()
+  List<T> clone() = new Cons<T> (this.head, this.rest) 
+  List<T> append(List<T> other)
+  	= new Cons<T>(this.head, (this.rest).append(other))
+}
+
+class Nil <T> () implements List<T>{
+  T head() (Raise) = Raise::raise()
+  List<T> rest() (Raise) = Raise::raise()
+  Boolean empty() = new True()
+  List<T> clone() = this
+  List<T> append(List<T> other)
+  	= other
+}
+
+class True() implements Boolean{
+	Boolean and(Boolean other) = other
+}
+
+class False() implements Boolean{
+	Boolean and(Boolean other) = new False()
+}
+
+class Just<T>(T t) implements Maybe<T>{
+
+}
+
+class Nothing<T>() implements Maybe<T>{
+
+}
+
+class StateClient1(){
+	StateResult<Boolean> main() =
+		with(new DefaultState<Boolean>(new True())){
+			Boolean saved = DefaultState<Boolean>::get() {
+				Unit foo = DefaultState<Boolean>::put(new False()){
+					Boolean other = DefaultState<Boolean>::get(){	
+						other.and(saved)
+					}
+				} 
+			}
+		}
+}
+
+class StateClient2(){
+	Boolean compute() (State<Boolean>) =
+			Boolean saved = State<Boolean>::get() {
+				Unit foo = State<Boolean>::put(new False()){
+					Boolean other = State<Boolean>::get(){	
+						other.and(saved)
+					}
+				}
+			}
+	StateResult<Boolean> main() () =
+		with (new DefaultState<Boolean>(new True())){
+			this.compute()
+		}
+
+}
+
+class RaiseClient1(){
+	<X> X second(List<X> lst) (Raise) =
+		List<X> rst = lst.rest(){
+			rst.head()
+		}
+		
+	Maybe<Boolean> main() () =
+		with (new ToMaybe<Boolean>()){
+			this.<Boolean>second(new Cons<Boolean>(new True(), new Nil<Boolean>()))
+		}
+}
+
+class RaiseClient2(){
+	Maybe<Boolean> main() () =
+		with (new ToMaybe<Boolean>()){
+			List<Boolean> rst = new Cons<Boolean>(new True(), new Nil<Boolean>()).rest(){
+				rst.head()
+			}
+		}
+}
+
+class Main(){
+	String main1(Int n, Boolean b) (ToStr<Int>, ToStr<Boolean>) =
+		(ToStr<Int>::toString(n)).concat(ToStr<Boolean>::toString(b))
+		
+	String main2(Int n) (IntToStr, IntToHex) =
+		(IntToStr::toString(n)).concat(IntToHex::toString(n))	
+		
+	String theMain1() =
+		with (new AnIntToStr<String>()){
+			with (new ABoolToStr<String>()){
+				this.main1(new FortyTwo(), new True())
+			}
+		}
+
+	String theMain2() =
+		with (new AnIntToStr<String>()){
+			with (new AnIntToHex<String>()){
+				this.main2(new FortyTwo())
+			}
+		}
+
+	String main() =
+		with (new AnIntToStr<String>()){
+			with (new ABoolToStr<String>()){
+				this.main1(new FortyTwo(), new True())
+			}
+		}
+		
+}
+
+class CounterExamplePrivileges1(){
+	Unit main() (State<Int>) = Raise::raise()
+}
+
+class CounterExamplePrivileges2(){
+	Maybe<Boolean> main() = with (new ToMaybe<Boolean>()) { State<Boolean>::get() }
+}
+
+class CounterExamplePrivileges3(){
+	Unit doState() (State<Boolean>) = State<Boolean>::put(new True())
+	Unit main() () = this.doState()
+}
+
+class ExamplePrivileges4(){
+	Unit doState() (State<Boolean>) = State<Boolean>::put(new True())
+	Unit main() (State<Boolean>) = this.doState()
+}
+
+
+class Main2(){
+	String main1(Int n, Boolean b) (ToStr<Int>, ToStr<Boolean>) =
+		(ToStr<Int>::toString(n)).concat(ToStr<Boolean>::toString(b))
+		
+	String theMain1() =
+		with (new AnIntToStr<String>()){
+			with (new ABoolToStr<String>()){
+				with (new AnIntToHex<String>()){
+					this.main1(new FortyTwo(), new True())
+				}
+			}
+		}
+}
+
+//typetest TNew1 {
+//	Cons<Object>(Object(), Nil<Object>())
+//}
+//hastype{
+//	Cons<Object>
+//}
+
+//typetest TField1 {
+//	Cons<Object>(Object(), Nil<Object>()).head
+//}
+//hastype{
+//	Object<>
+//}
+
+//typetest TField2 {
+//	Cons<Object>(Object(), Nil<Object>()).rest
+//}
+//hastype{
+//	List<Object<>>
+//}
+
+//typetest TMethodCall1 {
+//	Cons<Object>(Object(), Nil<Object>()).rest()
+//}
+//hastype{
+//	List<Object<>>
+//}
+
+//typetest TMethodCall2 {
+//	Cons<Object>(Object(), Nil<Object>()).empty()
+//}
+//hastype{
+//	Boolean<>
+//}
+
+//typetest TMethodCall3 {
+//	Cons<Object>(Object(), Nil<Object>()).append(Nil<Object>())
+//}
+//hastype{
+//	List<Object<>>
+//}
+
+//typetest Effect1{
+//	with(ToMaybe<Boolean <>>()){
+//		Nil<Boolean>().head()
+//	}
+//}
+//hastype{
+//	Maybe<Boolean>
+//}
+
+//typetest Effect2{
+//	with(ToMaybe<Boolean <>>()){
+//		Cons<Boolean>(True(), Nil<Boolean>()).head()
+//	}
+//}
+//hastype{
+//	Maybe<Boolean>
+//}
+
+evaltest Eval1{
+	new RaiseClient2().main()
+} produces{
+	new Nothing<Boolean>()
+}
+
+evaltest Eval2{
+	new Main().theMain1()
+} produces{
+	new ConcatStr(new SerializedInt(), new SerializedBoolean())
+}
+
+evaltest Eval3{
+	new Main().theMain2()
+} produces{
+	new ConcatStr(new SerializedInt(), new Hex())
+}
+
+evaltest Eval4{
+	new Main2().theMain1()
+} produces{
+	new ConcatStr(new Hex(), new SerializedBoolean())
+}
+
+classtypechecks DefaultState yes
+	
+classtypechecks ToMaybe yes
+	
+classtypechecks StateClient1 yes
+
+classtypechecks StateClient2 yes
+
+classtypechecks RaiseClient1 yes
+
+classtypechecks RaiseClient2 yes
+
+classtypechecks Main yes
+
+classtypechecks AnIntToStr yes
+
+classtypechecks Main2 yes
+
+classtypechecks CounterExamplePrivileges1 no
+classtypechecks CounterExamplePrivileges2 no
+classtypechecks CounterExamplePrivileges3 no
+classtypechecks ExamplePrivileges4 yes
+
+classtypechecks DoesNotRaise yes
+classtypechecks DoesRaise yes
+
+classtypechecks PurityClass yes
+classtypechecks NotThatPure no
+
+
+

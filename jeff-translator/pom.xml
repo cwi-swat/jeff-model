@@ -1,0 +1,117 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>nl.cwi</groupId>
+  <artifactId>jeff-translator</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>jeff_model</name>
+  <url>http://maven.apache.org</url>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <mainClass>nl.cwi.jeff_model.Transpiler</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+        
+        
+      </plugin>
+      
+       <plugin>
+              <groupId>com.googlecode.addjars-maven-plugin</groupId>
+              <artifactId>addjars-maven-plugin</artifactId>
+              <version>1.0.5</version>
+              <executions>
+                <execution>
+                    <goals>
+                        <goal>add-jars</goal>
+                    </goals>
+                    <configuration>
+                        <resources>
+                            <resource>
+                                <directory>${project.basedir}/src/main/lib</directory>
+                            </resource>
+                        </resources>
+                    </configuration>
+                </execution>
+              </executions>
+            </plugin>
+            
+        <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.1.1</version>
+        <configuration>
+          <!-- put your configurations here -->
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      
+
+    </plugins>
+    		<pluginManagement>
+			<plugins>
+				<!--This plugin's configuration is used to store Eclipse m2e settings
+					only. It has no influence on the Maven build itself. -->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>
+											com.googlecode.addjars-maven-plugin
+										</groupId>
+										<artifactId>
+											addjars-maven-plugin
+										</artifactId>
+										<versionRange>
+											[1.0.5,)
+										</versionRange>
+										<goals>
+											<goal>add-jars</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute>
+											<runOnIncremental>true</runOnIncremental>
+										</execute>
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+  </build>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+  </properties>
+
+
+</project>
